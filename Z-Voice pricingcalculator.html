@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoho Voice US — Internal Pricing Calculator</title>
+<style>
+  :root{
+    --bg:#0B0A17;
+    --surface:#141225;
+    --surface-2: color-mix(in srgb, var(--surface) 100%, white 6%);
+    --border: color-mix(in srgb, var(--surface) 100%, white 10%);
+    --border-strong: color-mix(in srgb, var(--surface) 100%, white 18%);
+    --text:#F3F1FA;
+    --text-secondary:#A6A0C2;
+    --text-muted:#635D82;
+    --accent:#7C6CFF;
+    --accent-dim: color-mix(in srgb, var(--accent) 20%, var(--bg));
+    --teal:#2ED9A0;
+    --teal-dim: color-mix(in srgb, var(--teal) 18%, var(--bg));
+    --amber:#F5B942;
+    --amber-dim: color-mix(in srgb, var(--amber) 16%, var(--bg));
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{max-width:920px;margin:0 auto;padding:28px 24px 80px;}
+
+  /* topbar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:28px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;color:#04122E;}
+  .brand-name{font-weight:600;font-size:15px;letter-spacing:0.2px;}
+  .brand-sub{font-size:12px;color:var(--text-muted);}
+  .top-right{display:flex;align-items:center;gap:14px;}
+  .gear{
+    width:36px;height:36px;border-radius:50%;border:1px solid var(--border-strong);
+    background:var(--surface);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:transform .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .gear:hover{transform:scale(1.15) rotate(20deg);color:var(--text);border-color:var(--accent);}
+
+  /* progress */
+  .progress-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .step-label{font-size:12.5px;color:var(--accent);font-weight:600;letter-spacing:0.3px;}
+  .step-pct{font-size:12.5px;color:var(--text-muted);font-family:var(--mono);}
+  .progress-track{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin-bottom:36px;}
+  .progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .35s ease;}
+
+  /* step content */
+  .eyebrow{font-size:12.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin:0 0 10px;font-weight:600;}
+  h1{font-size:28px;font-weight:600;margin:0 0 12px;letter-spacing:-0.3px;}
+  .intro{color:var(--text-secondary);font-size:15px;margin:0 0 28px;max-width:560px;}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+  .cards.single{grid-template-columns:1fr;}
+  .cards.tri{grid-template-columns:repeat(3,1fr);}
+  .opt-card{
+    background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);
+    padding:18px 18px;cursor:pointer;text-align:left;color:var(--text);
+    transition:transform .15s ease, border-color .15s ease, background .15s ease;
+    display:block;width:100%;font-family:var(--sans);
+  }
+  .opt-card:hover{transform:scale(1.02);border-color:var(--accent);background:var(--surface-2);}
+  .opt-card.selected{border-color:var(--accent);background:var(--accent-dim);}
+  .opt-card .oc-title{font-weight:600;font-size:15.5px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;}
+  .opt-card .oc-price{font-family:var(--mono);font-size:13px;color:var(--teal);}
+  .opt-card .oc-desc{font-size:13px;color:var(--text-secondary);line-height:1.5;}
+  .badge{font-size:10.5px;background:var(--amber-dim);color:var(--amber);padding:2px 8px;border-radius:999px;font-weight:600;letter-spacing:0.3px;}
+
+  .row-block{
+    background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);
+    padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+  }
+  .row-block .rb-title{font-weight:600;font-size:15px;margin:0 0 3px;}
+  .row-block .rb-sub{font-size:12.5px;color:var(--text-muted);margin:0;}
+
+  .stepper{display:flex;align-items:center;gap:14px;}
+  .step-btn{
+    width:30px;height:30px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface-2);
+    color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
+    transition:transform .15s ease, background .15s ease, border-color .15s ease;
+  }
+  .step-btn:hover{transform:scale(1.18);background:var(--accent-dim);border-color:var(--accent);}
+  .step-val{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--accent);min-width:22px;text-align:center;}
+
+  .term{position:relative;display:inline-block;border-bottom:1px dashed var(--accent);color:var(--accent);cursor:help;font-weight:600;}
+  .term .tip{
+    visibility:hidden;opacity:0;transition:opacity .15s ease;position:absolute;bottom:calc(100% + 10px);left:0;
+    width:260px;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;padding:12px 14px;
+    font-size:12.5px;font-weight:400;color:var(--text-secondary);z-index:8;line-height:1.5;font-family:var(--sans);
+  }
+  .term:hover .tip{visibility:visible;opacity:1;}
+
+  .info-box{
+    background:var(--accent-dim);border:1px solid #2A4685;border-radius:8px;padding:14px 16px;
+    display:flex;gap:10px;margin:18px 0 24px;font-size:13px;color:#B9D0FF;line-height:1.6;
+  }
+  .info-box.amber{background:var(--amber-dim);border-color:#5C4415;color:#F0CE8E;}
+  .info-box svg{flex-shrink:0;margin-top:2px;}
+
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+  .field{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);padding:16px 18px;}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:8px;}
+  .field .fdesc{font-size:12px;color:var(--text-muted);margin-bottom:10px;}
+  .field input[type=number]{
+    width:100%;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;
+    color:var(--text);padding:9px 12px;font-family:var(--mono);font-size:15px;
+  }
+  .field input[type=number]:focus{outline:none;border-color:var(--accent);}
+  .toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .checkbox{
+    width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border-strong);background:var(--surface-2);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s ease, background .15s ease;
+  }
+  .checkbox.on{background:var(--accent);border-color:var(--accent);}
+
+  .nav-row{display:flex;gap:12px;margin-top:8px;}
+  .btn{
+    padding:11px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease;border:1px solid var(--border-strong);
+    background:transparent;color:var(--text);
+  }
+  .btn:hover{transform:scale(1.05);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#04122E;}
+  .btn.primary:hover{box-shadow:0 0 0 4px var(--accent-dim);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn:disabled:hover{transform:none;box-shadow:none;}
+
+  /* summary */
+  .summary-card{background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;padding:24px 26px;margin-bottom:20px;}
+  .sc-tag{font-size:12.5px;color:var(--text-muted);margin:0 0 16px;}
+  .summary-total{padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+  .summary-total .st-label{font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .summary-total .st-amount{font-family:var(--mono);font-size:34px;font-weight:700;color:var(--teal);margin-top:2px;}
+  .summary-total .st-amount .st-period{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--text-muted);margin-left:4px;}
+  .summary-total .st-sub{font-family:var(--mono);font-size:14px;color:var(--text-secondary);margin-top:4px;}
+  .summary-section{margin-bottom:6px;}
+  .ss-title{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin:14px 0 4px;}
+  .line{display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-size:13.5px;border-bottom:1px solid #1B2337;}
+  .line:last-child{border-bottom:none;}
+  .line .l-name{color:var(--text-secondary);}
+  .line .l-amt{font-family:var(--mono);color:var(--text);}
+  .total-breakdown{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:14px;border-top:1px solid var(--border-strong);}
+  .total-breakdown .tb-label{font-size:14px;font-weight:600;color:var(--text);}
+  .total-breakdown .tb-amount{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--teal);}
+  .tb-formula{font-size:12px;color:var(--text-muted);font-family:var(--mono);margin:4px 0 0;}
+  .annual-note{font-size:12.5px;color:var(--text-muted);margin-top:14px;}
+
+  .disclaimer{
+    font-size:12px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:12px 16px;line-height:1.6;
+  }
+
+  /* settings drawer */
+  .overlay{position:fixed;inset:0;background:rgba(4,7,14,0.6);display:none;align-items:flex-start;justify-content:flex-end;z-index:50;}
+  .overlay.open{display:flex;}
+  .drawer{width:360px;max-width:90vw;height:100%;background:var(--surface);border-left:1px solid var(--border-strong);padding:24px;overflow-y:auto;}
+  .drawer h3{margin:0 0 4px;font-size:16px;}
+  .drawer .dsub{font-size:12px;color:var(--text-muted);margin:0 0 20px;line-height:1.5;}
+  .rate-group{margin-bottom:18px;}
+  .rate-group h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:0 0 10px;}
+  .rate-field{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+  .rate-field label{font-size:12.5px;color:var(--text-secondary);flex:1;}
+  .rate-field input{
+    width:80px;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:6px;color:var(--text);
+    padding:5px 8px;font-family:var(--mono);font-size:12.5px;text-align:right;
+  }
+  .drawer-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface-2);color:var(--text);cursor:pointer;transition:transform .15s ease;}
+  .drawer-close:hover{transform:scale(1.15);}
+  .drawer-top{display:flex;justify-content:space-between;align-items:flex-start;}
+
+  .swatch-row{display:flex;flex-wrap:wrap;gap:10px;}
+  .swatch{
+    width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+    transition:transform .15s ease, border-color .15s ease;position:relative;flex-shrink:0;
+  }
+  .swatch:hover{transform:scale(1.1);}
+  .swatch.active{border-color:var(--text);}
+  .color-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .color-row label{font-size:12.5px;color:var(--text-secondary);}
+  .color-row input[type=color]{
+    width:40px;height:28px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface-2);
+    cursor:pointer;padding:2px;
+  }
+
+  @media(max-width:640px){
+    .cards{grid-template-columns:1fr;}
+    .cards.tri{grid-template-columns:1fr;}
+    .field-grid{grid-template-columns:1fr;}
+    .row-block{flex-direction:column;align-items:flex-start;gap:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">ZV</div>
+      <div>
+        <div class="brand-name">Zoho Voice — US quote builder</div>
+        <div class="brand-sub">Internal pricing calculator</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="gear" id="paletteBtn" title="Customize colors" role="button" aria-label="Customize colors">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C22 6.012 17.461 2 12 2z"></path></svg>
+      </div>
+      <div class="gear" id="gearBtn" title="Edit rate card" role="button" aria-label="Edit rate card">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-row">
+    <span class="step-label" id="stepLabel">Step 1 of 8</span>
+    <span class="step-pct" id="stepPct">0%</span>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+  <div id="stepContent"></div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="drawer">
+    <div class="drawer-top">
+      <div>
+        <h3>Rate card</h3>
+      </div>
+      <div class="drawer-close" id="drawerClose">✕</div>
+    </div>
+    <div id="rateFields"></div>
+  </div>
+</div>
+
+<div class="overlay" id="themeOverlay">
+  <div class="drawer">
+    <div class="drawer-top">
+      <div>
+        <h3>Colors</h3>
+        <p class="dsub">Pick a preset or set your own. Changes apply instantly for this session.</p>
+      </div>
+      <div class="drawer-close" id="themeDrawerClose">✕</div>
+    </div>
+    <div class="rate-group">
+      <h4>Presets</h4>
+      <div class="swatch-row" id="swatchRow"></div>
+    </div>
+    <div class="rate-group">
+      <h4>Custom</h4>
+      <div class="color-row"><label>Accent</label><input type="color" id="c-accent"></div>
+      <div class="color-row"><label>Success / totals</label><input type="color" id="c-teal"></div>
+      <div class="color-row"><label>Highlight</label><input type="color" id="c-amber"></div>
+      <div class="color-row"><label>Background</label><input type="color" id="c-bg"></div>
+      <div class="color-row"><label>Card surface</label><input type="color" id="c-surface"></div>
+      <div class="color-row"><label>Text</label><input type="color" id="c-text"></div>
+    </div>
+    <button class="btn" id="themeReset" style="width:100%;margin-top:6px;">Reset to default</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- CONFIG (editable rate card) ---------------- */
+const CONFIG = {
+  enterprise: { basic: 34, standard: 49, contactCenter: 74 },
+  business: { team: 100, office: 300, corporate: 600 },
+  businessCap: { team: 10, office: 30, corporate: 100 },
+  businessFreeMin: { team: 1000, office: 2000, corporate: 4000 },
+  extraUser: 24,
+  agentUpgrade: 15,
+  addons: { powerDialer: 10, callMonitoring: 10, queueMetrics: 10, noiseCancel: 8, multiLevelIvr: 12 },
+  numbers: { local: 1.5, tollfree: 3, personal: 6, unlimited: 15 },
+  usage: { local: 0.013, tollfree: 0.022, intl: 0.09 },
+  sms: { segment: 0.0075 },
+  tenDlc: 10,
+  monthlyMarkup: 0.18
+};
+
+const state = {
+  step: 1,
+  edition: null,
+  tier: null,
+  billing: 'yearly',
+  admins: 1,
+  agentUpgrades: 0,
+  addonUsers: { powerDialer: 0, callMonitoring: 0, queueMetrics: 0, noiseCancel: 0, multiLevelIvr: 0 },
+  extraUsers: 0,
+  numbers: { local: 1, tollfree: 0, personal: 0, unlimited: 0 },
+  minutesOver: { local: 0, tollfree: 0, intl: 0 },
+  smsSegments: 0,
+  tenDlc: false
+};
+
+const TOTAL_STEPS = 8;
+const content = document.getElementById('stepContent');
+
+/* ---------------- helpers ---------------- */
+function fmt(n){ return '$' + n.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+function fmt2(n){ return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function billingMultiplier(){ return state.billing === 'monthly' ? (1 + CONFIG.monthlyMarkup) : 1; }
+
+function computeQuote(){
+  const lines = [];
+  let base = 0;
+
+  if(state.edition === 'enterprise'){
+    if(state.tier && state.tier !== 'solo'){
+      const rate = CONFIG.enterprise[state.tier] * billingMultiplier();
+      base += rate * state.admins;
+      lines.push({cat:'licence', name:`${tierLabel(state.tier)} — ${state.admins} admin${state.admins>1?'s':''} × ${fmt2(rate)}`, amt: rate*state.admins});
+    } else if(state.tier === 'solo'){
+      lines.push({cat:'licence', name:'Solo plan — pay-as-you-go, no base fee', amt:0});
+    }
+    if(state.agentUpgrades > 0){
+      const amt = state.agentUpgrades * CONFIG.agentUpgrade * billingMultiplier();
+      lines.push({cat:'licence', name:`Telephony agent → full user upgrade × ${state.agentUpgrades}`, amt});
+      base += amt;
+    }
+  }
+
+  Object.keys(state.addonUsers).forEach(k=>{
+    const count = state.addonUsers[k];
+    if(count > 0){
+      const rate = CONFIG.addons[k] * billingMultiplier();
+      const amt = rate * count;
+      lines.push({cat:'licence', name:`${addonLabel(k)} × ${count} user${count>1?'s':''}`, amt});
+      base += amt;
+    }
+  });
+
+  if(state.edition === 'business' && state.tier){
+    const rate = CONFIG.business[state.tier] * billingMultiplier();
+    base += rate;
+    lines.push({cat:'licence', name:`${tierLabel(state.tier)} plan (flat fee, up to ${CONFIG.businessCap[state.tier]} users)`, amt: rate});
+    if(state.extraUsers > 0){
+      const amt = state.extraUsers * CONFIG.extraUser * billingMultiplier();
+      lines.push({cat:'licence', name:`Additional users × ${state.extraUsers}`, amt});
+      base += amt;
+    }
+  }
+
+  Object.keys(state.numbers).forEach(k=>{
+    const count = state.numbers[k];
+    if(count > 0){
+      const rate = CONFIG.numbers[k];
+      const amt = rate * count;
+      lines.push({cat:'numbers', name:`${numberLabel(k)} numbers × ${count}`, amt});
+      base += amt;
+    }
+  });
+
+  Object.keys(state.minutesOver).forEach(k=>{
+    const mins = state.minutesOver[k];
+    if(mins > 0){
+      const rate = CONFIG.usage[k];
+      const amt = mins * rate;
+      lines.push({cat:'usage', name:`${minuteLabel(k)} — ${mins.toLocaleString()} min beyond allowance`, amt});
+      base += amt;
+    }
+  });
+
+  if(state.smsSegments > 0){
+    const amt = state.smsSegments * CONFIG.sms.segment;
+    lines.push({cat:'usage', name:`SMS/MMS segments × ${state.smsSegments.toLocaleString()}`, amt});
+    base += amt;
+  }
+  if(state.tenDlc){
+    lines.push({cat:'usage', name:'10DLC registration & hosting', amt: CONFIG.tenDlc});
+    base += CONFIG.tenDlc;
+  }
+
+  const catTotal = (cat) => lines.filter(l=>l.cat===cat).reduce((s,l)=>s+l.amt,0);
+  return {
+    lines,
+    total: base,
+    licenceTotal: catTotal('licence'),
+    numbersTotal: catTotal('numbers'),
+    usageTotal: catTotal('usage')
+  };
+}
+
+function tierLabel(t){
+  return {basic:'Basic', standard:'Standard', contactCenter:'Contact Center', solo:'Solo',
+          team:'Team', office:'Office', corporate:'Corporate'}[t] || t;
+}
+function addonLabel(k){
+  return {powerDialer:'Power Dialer', callMonitoring:'Call Monitoring', queueMetrics:'Queue Performance Metrics', noiseCancel:'Advanced Noise Cancellation', multiLevelIvr:'Multi-level IVR'}[k];
+}
+function numberLabel(k){
+  return {local:'Local', tollfree:'Toll-free', personal:'Personal', unlimited:'Personal Unlimited'}[k];
+}
+function minuteLabel(k){
+  return {local:'Local outbound', tollfree:'Toll-free outbound', intl:'International outbound'}[k];
+}
+
+function updateTicker(){
+  // Estimate is only surfaced on the final quote step now — no live ticker.
+  if(state.step > TOTAL_STEPS) renderSummary();
+}
+
+function term(word, tip){
+  return `<span class="term">${word}<span class="tip">${tip}</span></span>`;
+}
+
+function stepper(id, val, min, max, onChange){
+  return `<div class="stepper">
+    <button class="step-btn" data-stepper="${id}" data-dir="-1">−</button>
+    <span class="step-val" id="val-${id}">${val}</span>
+    <button class="step-btn" data-stepper="${id}" data-dir="1">+</button>
+  </div>`;
+}
+
+/* ---------------- step renderers ---------------- */
+function goto(step){
+  state.step = step;
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function setProgress(){
+  document.getElementById('stepLabel').textContent = `Step ${state.step} of ${TOTAL_STEPS}`;
+  const pct = Math.round(((state.step-1)/(TOTAL_STEPS-1))*100);
+  document.getElementById('stepPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function navButtons(nextEnabled, nextLabel){
+  return `<div class="nav-row">
+    ${state.step>1 ? `<button class="btn" id="backBtn">Back</button>` : ''}
+    <button class="btn primary" id="nextBtn" ${nextEnabled ? '' : 'disabled'}>${nextLabel || 'Next step'}</button>
+  </div>`;
+}
+
+function wireNav(canGoNext){
+  const back = document.getElementById('backBtn');
+  if(back) back.addEventListener('click', ()=>goto(state.step-1));
+  const next = document.getElementById('nextBtn');
+  if(next) next.addEventListener('click', ()=>{
+    if(canGoNext && canGoNext() === false) return;
+    goto(state.step+1);
+  });
+}
+
+function wireSteppers(handlers){
+  document.querySelectorAll('[data-stepper]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.stepper;
+      const dir = parseInt(btn.dataset.dir,10);
+      handlers[id](dir);
+    });
+  });
+}
+
+const steps = {
+
+  1(){
+    content.innerHTML = `
+      <p class="eyebrow">Step 1 — product line</p>
+      <h1>Which Zoho Voice edition?</h1>
+      <div class="cards">
+        <button class="opt-card ${state.edition==='enterprise'?'selected':''}" data-edition="enterprise">
+          <div class="oc-title">Enterprise Telephony <span class="oc-price">per user</span></div>
+        </button>
+        <button class="opt-card ${state.edition==='business'?'selected':''}" data-edition="business">
+          <div class="oc-title">Business Phone <span class="oc-price">flat fee</span></div>
+        </button>
+      </div>
+      ${navButtons(!!state.edition)}
+    `;
+    content.querySelectorAll('[data-edition]').forEach(c=>{
+      c.addEventListener('click', ()=>{
+        state.edition = c.dataset.edition;
+        state.tier = null;
+        steps[1]();
+        updateTicker();
+      });
+    });
+    wireNav();
+  },
+
+  2(){
+    const isEnt = state.edition === 'enterprise';
+    const tiers = isEnt
+      ? [
+          {id:'solo', name:'Solo', price:'Free'},
+          {id:'basic', name:'Basic', price:`${fmt(CONFIG.enterprise.basic)}/admin/mo`},
+          {id:'standard', name:'Standard', price:`${fmt(CONFIG.enterprise.standard)}/admin/mo`, badge:'Most common'},
+          {id:'contactCenter', name:'Contact Center', price:`${fmt(CONFIG.enterprise.contactCenter)}/admin/mo`},
+        ]
+      : [
+          {id:'team', name:'Team', price:`${fmt(CONFIG.business.team)}/mo flat`},
+          {id:'office', name:'Office', price:`${fmt(CONFIG.business.office)}/mo flat`},
+          {id:'corporate', name:'Corporate', price:`${fmt(CONFIG.business.corporate)}/mo flat`},
+        ];
+
+    content.innerHTML = `
+      <p class="eyebrow">Step 2 — plan tier</p>
+      <h1>Which tier, and how many ${isEnt ? 'admins' : 'users'}?</h1>
+      <div class="cards ${tiers.length===4?'':'tri'}" style="${tiers.length===4?'grid-template-columns:repeat(2,1fr)':''}">
+        ${tiers.map(t=>`
+          <button class="opt-card ${state.tier===t.id?'selected':''}" data-tier="${t.id}">
+            <div class="oc-title">${t.name} ${t.badge?`<span class="badge">${t.badge}</span>`:''}</div>
+            <div class="oc-price">${t.price}</div>
+          </button>
+        `).join('')}
+      </div>
+      ${state.tier && state.tier !== 'solo' ? `
+      <div class="row-block">
+        <div>
+          <p class="rb-title">${isEnt ? 'Admin licences' : 'Included users'}</p>
+        </div>
+        ${isEnt ? stepper('admins', state.admins, 1, 999) : `<span class="step-val">${CONFIG.businessCap[state.tier]} included</span>`}
+      </div>` : ''}
+      ${navButtons(!!state.tier)}
+    `;
+    content.querySelectorAll('[data-tier]').forEach(c=>{
+      c.addEventListener('click', ()=>{ state.tier = c.dataset.tier; steps[2](); updateTicker(); });
+    });
+    wireSteppers({
+      admins: (dir)=>{
+        state.admins = Math.max(1, state.admins + dir);
+        document.getElementById('val-admins').textContent = state.admins;
+        updateTicker();
+      }
+    });
+    wireNav();
+  },
+
+  3(){
+    content.innerHTML = `
+      <p class="eyebrow">Step 3 — billing cycle</p>
+      <h1>Monthly or annual billing?</h1>
+      <div class="cards">
+        <button class="opt-card ${state.billing==='yearly'?'selected':''}" data-billing="yearly">
+          <div class="oc-title">Billed yearly</div>
+        </button>
+        <button class="opt-card ${state.billing==='monthly'?'selected':''}" data-billing="monthly">
+          <div class="oc-title">Billed monthly <span class="oc-price">+${(CONFIG.monthlyMarkup*100).toFixed(0)}%</span></div>
+        </button>
+      </div>
+      ${navButtons(true)}
+    `;
+    content.querySelectorAll('[data-billing]').forEach(c=>{
+      c.addEventListener('click', ()=>{ state.billing = c.dataset.billing; steps[3](); updateTicker(); });
+    });
+    wireNav();
+  },
+
+  4(){
+    const isEnt = state.edition === 'enterprise';
+    const showAgentUpgrade = isEnt && (state.tier === 'standard' || state.tier === 'contactCenter');
+    const showExtraUsers = !isEnt;
+
+    content.innerHTML = `
+      <p class="eyebrow">Step 4 — team size</p>
+      <h1>${showAgentUpgrade ? 'Any agents need full access?' : showExtraUsers ? 'Extra seats beyond the plan cap?' : 'Nothing more to size here'}</h1>
+      ${showAgentUpgrade ? `
+      <div class="row-block">
+        <div>
+          <p class="rb-title">Agents to upgrade</p>
+          <p class="rb-sub">${fmt(CONFIG.agentUpgrade)}/user/month</p>
+        </div>
+        ${stepper('agentUpgrades', state.agentUpgrades, 0, 999)}
+      </div>` : ''}
+      ${showExtraUsers ? `
+      <div class="row-block">
+        <div>
+          <p class="rb-title">Additional users</p>
+          <p class="rb-sub">${fmt(CONFIG.extraUser)}/user/month</p>
+        </div>
+        ${stepper('extraUsers', state.extraUsers, 0, 999)}
+      </div>` : ''}
+      ${navButtons(true)}
+    `;
+    wireSteppers({
+      agentUpgrades: (dir)=>{
+        state.agentUpgrades = Math.max(0, state.agentUpgrades + dir);
+        document.getElementById('val-agentUpgrades').textContent = state.agentUpgrades;
+        updateTicker();
+      },
+      extraUsers: (dir)=>{
+        state.extraUsers = Math.max(0, state.extraUsers + dir);
+        document.getElementById('val-extraUsers').textContent = state.extraUsers;
+        updateTicker();
+      }
+    });
+    wireNav();
+  },
+
+  5(){
+    const isEnt = state.edition === 'enterprise';
+    const isBiz = state.edition === 'business';
+    const bundledFree = isEnt && state.tier === 'contactCenter';
+    const eligible = (isEnt && (state.tier === 'basic' || state.tier === 'standard')) || (isBiz && !!state.tier);
+    const addonDefs = [
+      {id:'powerDialer', name:'Power Dialer'},
+      {id:'callMonitoring', name:'Call Monitoring'},
+      {id:'queueMetrics', name:'Queue Performance Metrics'},
+      {id:'noiseCancel', name:'Advanced Noise Cancellation'},
+      {id:'multiLevelIvr', name:'Multi-level IVR'},
+    ];
+    const excludedOnBiz = ['callMonitoring','multiLevelIvr'];
+    const visibleAddons = isBiz ? addonDefs.filter(a=>!excludedOnBiz.includes(a.id)) : addonDefs;
+    content.innerHTML = `
+      <p class="eyebrow">Step 5 — add-ons</p>
+      <h1>${eligible ? 'Any add-ons needed?' : bundledFree ? 'Add-ons included' : 'Add-ons not applicable'}</h1>
+      ${eligible ? visibleAddons.map(a=>`
+        <div class="row-block">
+          <div>
+            <p class="rb-title">${a.name}</p>
+            <p class="rb-sub">${fmt(CONFIG.addons[a.id])}/user/mo</p>
+          </div>
+          ${stepper(a.id, state.addonUsers[a.id], 0, 999)}
+        </div>
+      `).join('') : bundledFree ? `<div class="info-box">${infoIcon()}<span>Included free on Contact Center.</span></div>` : ''}
+      ${navButtons(true)}
+    `;
+    const handlers = {};
+    addonDefs.forEach(a=>{
+      handlers[a.id] = (dir)=>{
+        state.addonUsers[a.id] = Math.max(0, state.addonUsers[a.id] + dir);
+        document.getElementById(`val-${a.id}`).textContent = state.addonUsers[a.id];
+        updateTicker();
+      };
+    });
+    wireSteppers(handlers);
+    wireNav();
+  },
+
+  6(){
+    const numberDefs = [
+      {id:'local', name:'Local'},
+      {id:'tollfree', name:'Toll-free'},
+      {id:'personal', name:'Personal'},
+      {id:'unlimited', name:'Personal Unlimited'},
+    ];
+    content.innerHTML = `
+      <p class="eyebrow">Step 6 — phone numbers</p>
+      <h1>How many numbers, and what type?</h1>
+      ${numberDefs.map(n=>`
+        <div class="row-block">
+          <div>
+            <p class="rb-title">${n.name}</p>
+            <p class="rb-sub">${fmt2(CONFIG.numbers[n.id])}/mo each</p>
+          </div>
+          ${stepper(n.id, state.numbers[n.id], 0, 999)}
+        </div>
+      `).join('')}
+      ${navButtons(true)}
+    `;
+    const handlers = {};
+    numberDefs.forEach(n=>{
+      handlers[n.id] = (dir)=>{
+        state.numbers[n.id] = Math.max(0, state.numbers[n.id] + dir);
+        document.getElementById(`val-${n.id}`).textContent = state.numbers[n.id];
+        updateTicker();
+      };
+    });
+    wireSteppers(handlers);
+    wireNav();
+  },
+
+  7(){
+    const freeMin = state.edition==='business' && state.tier ? CONFIG.businessFreeMin[state.tier] : 0;
+    content.innerHTML = `
+      <p class="eyebrow">Step 7 — call usage</p>
+      <h1>Expected minutes beyond the free allowance</h1>
+      <div class="field-grid">
+        <div class="field">
+          <label>Local outbound minutes</label>
+          <div class="fdesc">${fmt2(CONFIG.usage.local)}/min</div>
+          <input type="number" min="0" id="min-local" value="${state.minutesOver.local}">
+        </div>
+        <div class="field">
+          <label>Toll-free outbound minutes</label>
+          <div class="fdesc">${fmt2(CONFIG.usage.tollfree)}/min</div>
+          <input type="number" min="0" id="min-tollfree" value="${state.minutesOver.tollfree}">
+        </div>
+        <div class="field">
+          <label>International outbound minutes</label>
+          <div class="fdesc">${fmt2(CONFIG.usage.intl)}/min</div>
+          <input type="number" min="0" id="min-intl" value="${state.minutesOver.intl}">
+        </div>
+      </div>
+      ${navButtons(true)}
+    `;
+    ['local','tollfree','intl'].forEach(k=>{
+      document.getElementById(`min-${k}`).addEventListener('input', (e)=>{
+        state.minutesOver[k] = Math.max(0, parseInt(e.target.value||0,10));
+        updateTicker();
+      });
+    });
+    wireNav();
+  },
+
+  8(){
+    content.innerHTML = `
+      <p class="eyebrow">Step 8 — messaging</p>
+      <h1>SMS/MMS volume</h1>
+      <div class="field-grid">
+        <div class="field">
+          <label>Total SMS/MMS segments per month</label>
+          <div class="fdesc">${fmt2(CONFIG.sms.segment)}/segment</div>
+          <input type="number" min="0" id="sms-segments" value="${state.smsSegments}">
+        </div>
+        <div class="field">
+          <label>10DLC registration needed?</label>
+          <div class="fdesc">${fmt(CONFIG.tenDlc)}/month</div>
+          <div class="toggle-row" id="tenDlcToggle">
+            <div class="checkbox ${state.tenDlc?'on':''}" id="tenDlcBox"></div>
+            <span>Yes, register this account</span>
+          </div>
+        </div>
+      </div>
+      ${navButtons(true, 'See final quote')}
+    `;
+    document.getElementById('sms-segments').addEventListener('input', (e)=>{
+      state.smsSegments = Math.max(0, parseInt(e.target.value||0,10));
+      updateTicker();
+    });
+    document.getElementById('tenDlcToggle').addEventListener('click', ()=>{
+      state.tenDlc = !state.tenDlc;
+      document.getElementById('tenDlcBox').classList.toggle('on', state.tenDlc);
+      updateTicker();
+    });
+    wireNav();
+  },
+
+};
+
+function infoIcon(){
+  return `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+}
+
+function renderSummary(){
+  const q = computeQuote();
+  const monthlyAmt = q.total;
+  const annualAmt = q.total * 12;
+  const isYearly = state.billing === 'yearly';
+  const primaryAmt = isYearly ? annualAmt : monthlyAmt;
+  const primaryPeriod = isYearly ? '/year' : '/month';
+  const secondaryAmt = isYearly ? monthlyAmt : annualAmt;
+  const secondaryLabel = isYearly ? 'per month' : 'per year';
+
+  const section = (title, cat, total) => {
+    const rows = q.lines.filter(l=>l.cat===cat && (l.amt>0 || l.name.includes('Solo')));
+    if(rows.length===0) return '';
+    return `
+      <div class="summary-section">
+        <p class="ss-title">${title}</p>
+        ${rows.map(l=>`<div class="line"><span class="l-name">${l.name}</span><span class="l-amt">${fmt2(l.amt)}</span></div>`).join('')}
+      </div>`;
+  };
+
+  const formulaParts = [];
+  if(q.licenceTotal>0) formulaParts.push(`${fmt(Math.round(q.licenceTotal))} licences`);
+  if(q.numbersTotal>0) formulaParts.push(`${fmt(Math.round(q.numbersTotal))} add-ons & numbers`);
+  if(q.usageTotal>0) formulaParts.push(`${fmt(Math.round(q.usageTotal))} call & messaging costs`);
+  const formula = formulaParts.length ? formulaParts.join(' + ') : 'No charges selected yet';
+
+  content.innerHTML = `
+    <p class="eyebrow">Final quote</p>
+    <h1>Here's the breakdown</h1>
+    <div class="summary-card">
+      <p class="sc-tag">${state.edition==='enterprise'?'Enterprise Telephony':'Business Phone'} — ${tierLabel(state.tier)} · billed ${state.billing}</p>
+      <div class="summary-total">
+        <div>
+          <div class="st-label">Estimated total</div>
+          <div class="st-amount">${fmt(primaryAmt)}<span class="st-period">${primaryPeriod}</span></div>
+          <div class="st-sub">${fmt(secondaryAmt)} ${secondaryLabel}</div>
+        </div>
+      </div>
+
+      ${section('Licence costs', 'licence')}
+      ${section('Add-ons &amp; numbers', 'numbers')}
+      ${section('Call &amp; messaging costs', 'usage')}
+      ${q.lines.filter(l=>l.amt>0||l.name.includes('Solo')).length===0 ? '<div class="line"><span class="l-name">No charges selected yet</span><span class="l-amt">$0.00</span></div>' : ''}
+
+      <div class="total-breakdown">
+        <span class="tb-label">Total per month</span>
+        <span class="tb-amount">${fmt(monthlyAmt)}</span>
+      </div>
+      <p class="tb-formula">${formula}</p>
+
+      <p class="annual-note">Call usage and SMS are estimates — actual usage bills vary month to month.</p>
+    </div>
+    <div class="disclaimer">
+      Rates are public list-price estimates gathered Jul 2026, not confirmed against Zoho's live pricing page. Open the rate card (gear icon, top right) to correct any figure — the quote recalculates immediately. Verify against your Zoho partner agreement before sending this to a customer.
+    </div>
+    <div class="nav-row" style="margin-top:20px;">
+      <button class="btn" id="backBtn">Back</button>
+      <button class="btn primary" id="restartBtn">Start over</button>
+    </div>
+  `;
+  document.getElementById('backBtn').addEventListener('click', ()=>goto(TOTAL_STEPS));
+  document.getElementById('restartBtn').addEventListener('click', ()=>{
+    Object.assign(state, {
+      step:1, edition:null, tier:null, billing:'yearly', admins:1, agentUpgrades:0,
+      addonUsers:{powerDialer:0,callMonitoring:0,queueMetrics:0,noiseCancel:0,multiLevelIvr:0}, extraUsers:0,
+      numbers:{local:1,tollfree:0,personal:0,unlimited:0}, minutesOver:{local:0,tollfree:0,intl:0},
+      smsSegments:0, tenDlc:false
+    });
+    render();
+    updateTicker();
+  });
+}
+
+function render(){
+  if(state.step > TOTAL_STEPS){
+    document.getElementById('stepLabel').textContent = 'Quote';
+    document.getElementById('stepPct').textContent = '100%';
+    document.getElementById('progressFill').style.width = '100%';
+    renderSummary();
+    return;
+  }
+  setProgress();
+  steps[state.step]();
+}
+
+/* ---------------- rate card drawer ---------------- */
+function buildRateFields(){
+  const groups = [
+    {title:'Enterprise Telephony (per admin/mo)', fields:[
+      ['enterprise.basic','Basic'], ['enterprise.standard','Standard'], ['enterprise.contactCenter','Contact Center']
+    ]},
+    {title:'Business Phone (flat/mo)', fields:[
+      ['business.team','Team'], ['business.office','Office'], ['business.corporate','Corporate']
+    ]},
+    {title:'Seats', fields:[
+      ['extraUser','Extra user/mo'], ['agentUpgrade','Agent upgrade/mo']
+    ]},
+    {title:'Add-ons (per user/mo)', fields:[
+      ['addons.powerDialer','Power Dialer'], ['addons.callMonitoring','Call Monitoring'],
+      ['addons.queueMetrics','Queue Metrics'], ['addons.noiseCancel','Noise Cancellation'],
+      ['addons.multiLevelIvr','Multi-level IVR']
+    ]},
+    {title:'Numbers (per mo)', fields:[
+      ['numbers.local','Local'], ['numbers.tollfree','Toll-free'], ['numbers.personal','Personal'], ['numbers.unlimited','Unlimited']
+    ]},
+    {title:'Usage (per min)', fields:[
+      ['usage.local','Local'], ['usage.tollfree','Toll-free'], ['usage.intl','International']
+    ]},
+    {title:'Messaging', fields:[
+      ['sms.segment','SMS/MMS segment'], ['tenDlc','10DLC hosting/mo']
+    ]},
+    {title:'Billing', fields:[
+      ['monthlyMarkup','Monthly markup (0.18 = 18%)']
+    ]},
+  ];
+  const wrap = document.getElementById('rateFields');
+  wrap.innerHTML = groups.map(g=>`
+    <div class="rate-group">
+      <h4>${g.title}</h4>
+      ${g.fields.map(([path,label])=>`
+        <div class="rate-field">
+          <label>${label}</label>
+          <input type="number" step="0.01" data-path="${path}" value="${getPath(CONFIG,path)}">
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+  wrap.querySelectorAll('input[data-path]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      setPath(CONFIG, inp.dataset.path, parseFloat(inp.value||0));
+      updateTicker();
+      if(state.step > TOTAL_STEPS) renderSummary();
+    });
+  });
+}
+function getPath(obj,path){ return path.split('.').reduce((o,k)=>o[k], obj); }
+function setPath(obj,path,val){ const parts = path.split('.'); let o = obj; for(let i=0;i<parts.length-1;i++) o = o[parts[i]]; o[parts[parts.length-1]] = val; }
+
+document.getElementById('gearBtn').addEventListener('click', ()=>{
+  buildRateFields();
+  document.getElementById('overlay').classList.add('open');
+});
+document.getElementById('drawerClose').addEventListener('click', ()=>{
+  document.getElementById('overlay').classList.remove('open');
+});
+document.getElementById('overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'overlay') document.getElementById('overlay').classList.remove('open');
+});
+
+/* ---------------- theme customizer ---------------- */
+const THEME_VARS = ['--accent','--teal','--amber','--bg','--surface','--text'];
+const DEFAULT_THEME = { accent:'#7C6CFF', teal:'#2ED9A0', amber:'#F5B942', bg:'#0B0A17', surface:'#141225', text:'#F3F1FA' };
+const THEME_PRESETS = [
+  { name:'Indigo (default)', ...DEFAULT_THEME },
+  { name:'Ocean',   accent:'#4C8DFF', teal:'#2FD9A7', amber:'#F5B942', bg:'#0A0E17', surface:'#121826', text:'#F2F4F9' },
+  { name:'Emerald', accent:'#10B981', teal:'#34D399', amber:'#F5B942', bg:'#08110D', surface:'#101C16', text:'#EFFBF5' },
+  { name:'Sunset',  accent:'#FB7185', teal:'#FBBF24', amber:'#F97316', bg:'#170B0E', surface:'#231218', text:'#FBF2F2' },
+  { name:'Slate',   accent:'#8B93A8', teal:'#94A3B8', amber:'#C9A876', bg:'#0D0F13', surface:'#161A21', text:'#EDEFF3' },
+  { name:'Rose Gold', accent:'#E8A5B0', teal:'#C9A876', amber:'#E8A5B0', bg:'#150F11', surface:'#221A1D', text:'#F8EFEF' },
+];
+let currentTheme = { ...DEFAULT_THEME };
+
+function applyTheme(theme){
+  currentTheme = { ...currentTheme, ...theme };
+  document.documentElement.style.setProperty('--accent', currentTheme.accent);
+  document.documentElement.style.setProperty('--teal', currentTheme.teal);
+  document.documentElement.style.setProperty('--amber', currentTheme.amber);
+  document.documentElement.style.setProperty('--bg', currentTheme.bg);
+  document.documentElement.style.setProperty('--surface', currentTheme.surface);
+  document.documentElement.style.setProperty('--text', currentTheme.text);
+  syncColorInputs();
+  syncSwatchActive();
+}
+
+function syncColorInputs(){
+  document.getElementById('c-accent').value = currentTheme.accent;
+  document.getElementById('c-teal').value = currentTheme.teal;
+  document.getElementById('c-amber').value = currentTheme.amber;
+  document.getElementById('c-bg').value = currentTheme.bg;
+  document.getElementById('c-surface').value = currentTheme.surface;
+  document.getElementById('c-text').value = currentTheme.text;
+}
+
+function syncSwatchActive(){
+  document.querySelectorAll('.swatch').forEach(sw=>{
+    const matches = THEME_PRESETS[sw.dataset.idx].accent === currentTheme.accent
+      && THEME_PRESETS[sw.dataset.idx].teal === currentTheme.teal
+      && THEME_PRESETS[sw.dataset.idx].bg === currentTheme.bg;
+    sw.classList.toggle('active', matches);
+  });
+}
+
+function buildSwatches(){
+  const wrap = document.getElementById('swatchRow');
+  wrap.innerHTML = THEME_PRESETS.map((t,i)=>`
+    <div class="swatch" data-idx="${i}" title="${t.name}" style="background:linear-gradient(135deg, ${t.accent} 50%, ${t.teal} 50%);"></div>
+  `).join('');
+  wrap.querySelectorAll('.swatch').forEach(sw=>{
+    sw.addEventListener('click', ()=> applyTheme(THEME_PRESETS[sw.dataset.idx]));
+  });
+}
+buildSwatches();
+
+['accent','teal','amber','bg','surface','text'].forEach(key=>{
+  document.getElementById(`c-${key}`).addEventListener('input', (e)=>{
+    applyTheme({ [key]: e.target.value });
+  });
+});
+
+document.getElementById('themeReset').addEventListener('click', ()=> applyTheme(DEFAULT_THEME));
+
+document.getElementById('paletteBtn').addEventListener('click', ()=>{
+  syncColorInputs();
+  syncSwatchActive();
+  document.getElementById('themeOverlay').classList.add('open');
+});
+document.getElementById('themeDrawerClose').addEventListener('click', ()=>{
+  document.getElementById('themeOverlay').classList.remove('open');
+});
+document.getElementById('themeOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'themeOverlay') document.getElementById('themeOverlay').classList.remove('open');
+});
+
+render();
+updateTicker();
+</script>
+</body>
+</html>
